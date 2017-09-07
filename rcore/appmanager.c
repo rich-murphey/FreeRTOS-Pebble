@@ -661,6 +661,14 @@ App *appmanager_get_running_app(void)
     return _running_app;
 }
 
+/*
+ * From the currently executing task, is this the app thread?
+ */
+bool appmanager_current_task_is_app(void)
+{
+    TaskHandle_t this_task = xTaskGetCurrentTaskHandle();
+    return _app_task_handle == this_task;
+}
 
 
 /* Some stubs below for testing etc */
@@ -708,7 +716,7 @@ ResHandle *resource_get_handle_proxy(uint16_t resource_id)
     KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "ResH %d %s", resource_id, _running_app->header->name);
 
     // push to the heap.
-    ResHandle *x = app_malloc(sizeof(ResHandle));
+    ResHandle *x = malloc(sizeof(ResHandle));
     ResHandle y = resource_get_handle_app(resource_id, &_running_app->resource_file);
     memcpy(x, &y, sizeof(ResHandle));
      

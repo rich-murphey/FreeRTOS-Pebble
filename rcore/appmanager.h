@@ -120,6 +120,7 @@ void appmanager_app_start(char *name);
 void appmanager_app_quit(void);
 App *appmanager_get_app(char *app_name);
 App *app_manager_get_apps_head();
+bool appmanager_current_task_is_app(void);
 
 void rbl_window_load_proc(void);
 void app_event_loop(void);

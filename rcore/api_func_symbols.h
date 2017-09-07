@@ -811,7 +811,7 @@ unalloc96,
 (VoidFunc)fonts_get_system_font,
 (VoidFunc)fonts_load_custom_font_proxy,                                              //custom font
 unalloc99,
-(VoidFunc)app_free,
+(VoidFunc)free,
 (VoidFunc)gbitmap_create_as_sub_bitmap,
 (VoidFunc)gbitmap_create_with_data,
 (VoidFunc)gbitmap_create_with_resource_proxy,
