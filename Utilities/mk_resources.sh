@@ -8,7 +8,7 @@ fi
 
 if [ $# -eq 1 ];then
 	SDK=$1
-else 
+else
 	if [ $BREW -eq 1 ];then
 		SDK=$BREW_SDK
 	else
@@ -53,6 +53,21 @@ else
 		bzip2 -d "$SDK/aplite/qemu/qemu_spi_flash.bin.bz2"
 	fi
 	cp "$SDK/aplite/qemu/qemu_spi_flash.bin" "Resources/tintin_spi.bin"
+fi
+
+if [ -f Resources/chalk_boot.bin ]; then
+	echo "tintin_boot already exists, not overwriting"
+else
+	dd if="$SDK/chalk/qemu/qemu_micro_flash.bin" of=Resources/chalk_boot.bin bs=16384 count=1
+fi
+
+if [ -f Resources/chalk_spi.bin ]; then
+	echo "tintin_spi already exists, not overwriting"
+else
+	if [ -f "$SDK/chalk/qemu/qemu_spi_flash.bin.bz2" ];then
+		bzip2 -d "$SDK/chalk/qemu/qemu_spi_flash.bin.bz2"
+	fi
+	cp "$SDK/chalk/qemu/qemu_spi_flash.bin" "Resources/chalk_spi.bin"
 fi
 
 echo "all done"
