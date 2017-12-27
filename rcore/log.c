@@ -145,3 +145,32 @@ static void _log_pad_string(const char *in_str, char *padded_str, uint16_t pad_l
         padded_str[i] = 0;
     }
 }
+
+// Ugh compat with btstack
+// XXX So hack
+int sprintf(char *str, const char *format, ...)
+{
+    va_list ap;
+    int n;
+
+    va_start(ap, format);
+    n = vsfmt(str, 128, format, ap);
+    va_end(ap);
+
+    return n;
+}
+
+
+char *strncpy(char *a2, const char *a1, size_t len)
+{
+	char *origa2 = a2;
+	int i = 0;
+	do {
+		*(a2++) = *a1;
+                if (i == len)
+                    break;
+                i++;
+	} while (*(a1++));
+	
+	return origa2;
+}

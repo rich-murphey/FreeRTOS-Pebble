@@ -45,14 +45,15 @@ typedef struct SystemStatus {
 } SystemStatus;
 
 
-// move into backlight
 typedef struct SystemSettings {
-    uint8_t backlight_intensity;
-    uint8_t backlight_on_time;
-    uint8_t vibrate_intensity;
-    uint8_t vibrate_pattern;
+    uint16_t backlight_intensity;
+    uint16_t backlight_on_time;
+    uint16_t vibrate_intensity;
+    uint16_t vibrate_pattern;
 } SystemSettings;
 
 
 void rebbleos_init(void);
 uint8_t rebbleos_get_system_status(void);
+
+SystemSettings *rebbleos_get_settings(void);

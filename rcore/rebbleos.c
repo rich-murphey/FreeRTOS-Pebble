@@ -14,7 +14,11 @@
 
 // current status of te system
 SystemStatus system_status = { .booted = 0 };
-SystemSettings system_settings;
+SystemSettings _system_settings = 
+{
+    .backlight_on_time = 3000,
+    .backlight_intensity = 100, //%
+};
 
 void rebbleos_init(void)
 {
@@ -38,4 +42,9 @@ void rebbleos_set_system_status(uint8_t status)
 uint8_t rebbleos_get_system_status(void)
 {
     return system_status.booted;
+}
+
+SystemSettings *rebbleos_get_settings(void)
+{
+    return &_system_settings;
 }

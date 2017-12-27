@@ -1,10 +1,12 @@
 CFLAGS_snowy = $(CFLAGS_stm32f4xx)
+CFLAGS_snowy += $(CFLAGS_bt)
 CFLAGS_snowy += $(CFLAGS_driver_stm32_buttons)
 CFLAGS_snowy += $(CFLAGS_driver_stm32_power)
 CFLAGS_snowy += -Ihw/platform/snowy
 CFLAGS_snowy += -DHSI_VALUE=16000000 -DREBBLE_PLATFORM=snowy -DREBBLE_PLATFORM_SNOWY
 
 SRCS_snowy = $(SRCS_stm32f4xx)
+SRCS_snowy += $(SRCS_bt)
 SRCS_snowy += $(SRCS_driver_stm32_buttons)
 SRCS_snowy += $(SRCS_driver_stm32_power)
 SRCS_snowy += hw/platform/snowy/snowy_display.c
@@ -15,6 +17,7 @@ SRCS_snowy += hw/platform/snowy/snowy_scanlines.c
 SRCS_snowy += hw/platform/snowy/snowy_vibrate.c
 SRCS_snowy += hw/platform/snowy/snowy_ambient.c
 SRCS_snowy += hw/platform/snowy/snowy_ext_flash.c
+SRCS_snowy += hw/platform/snowy/snowy_bluetooth.c
 SRCS_snowy += hw/platform/snowy/snowy.c
 SRCS_snowy += Resources/FPGA_4.3_snowy_dumped.bin
 
