@@ -33,3 +33,4 @@
 build/*
 
 localconfig.mk
+lib/btstack/btstack
