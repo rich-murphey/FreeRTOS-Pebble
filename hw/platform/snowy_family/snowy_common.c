@@ -20,6 +20,7 @@
 
 // ENABLE this if you want smartstrap debugging output. For now if you do this qemu might not work
 #define DEBUG_UART_SMARTSTRAP
+#define DEBUG_UART_DBG3
 
 void init_USART3(void);
 void init_USART8(void);
@@ -30,16 +31,29 @@ void ss_debug_write(const unsigned char *p, size_t len);
  */
 void debug_init()
 {
-    init_USART3(); // general debugging
 #ifdef DEBUG_UART_SMARTSTRAP
+    log_clock_enable();
     init_USART8(); // smartstrap debugging
+//     log_clock_disable();
 #endif
-    DRV_LOG("debug", APP_LOG_LEVEL_INFO, "Usart 3/8 Init");
+#ifdef DEBUG_UART_DBG3
+    init_USART3(); // general debugging
+#endif
+#ifdef DEBUG_UART_DBG3
+    DRV_LOG("debug", APP_LOG_LEVEL_INFO, "Usart 3 Init");
+#endif
+#ifdef DEBUG_UART_SMARTSTRAP
+    DRV_LOG("debug", APP_LOG_LEVEL_INFO, "Usart 8 Init");
+#endif
 }
 
 /* note that locking needs to be handled by external entity here */
 void debug_write(const unsigned char *p, size_t len)
 {
+#ifdef DEBUG_UART_SMARTSTRAP
+    ss_debug_write(p, len);
+#endif
+#ifdef DEBUG_UART_DBG3
     int i;
     
     stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_USART3);
@@ -52,34 +66,34 @@ void debug_write(const unsigned char *p, size_t len)
     
     stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_USART3);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
-
-#ifdef DEBUG_UART_SMARTSTRAP
-    ss_debug_write(p, len);
 #endif
 }
 
 /* note that locking needs to be handled by external entity here */
 void ss_debug_write(const unsigned char *p, size_t len)
 {
-#ifdef DEBUG_UART_SMARTSTRAP
-    int i;
-    UBaseType_t saved_int_status;
+// #ifdef DEBUG_UART_SMARTSTRAP
+//     int i;
+//     UBaseType_t saved_int_status;
 
-    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
-    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+//     stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+//     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
     
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
+//     RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
+//     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
-    
-    for (i = 0; i < len; i++) {
+    log_clock_enable();
+    init_USART8();
+    for (int i = 0; i < len; i++) {
         while (!(UART8->SR & USART_SR_TC));
         USART_SendData(UART8, p[i]);
+        while (!(UART8->SR & USART_SR_TC));
     }
+    log_clock_disable();
     
-    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
-#endif
+//     stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+//     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+// #endif
 }
 
 void log_clock_enable(void)
@@ -136,14 +150,14 @@ void init_USART8(void)
     GPIO_InitTypeDef GPIO_InitStruct;
     USART_InitTypeDef USART_InitStruct;
 
-    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
-    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
-
+//     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+//     stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+// 
     GPIO_InitStruct.GPIO_Pin = /*GPIO_Pin_0 |*/ GPIO_Pin_1;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
     GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOE, &GPIO_InitStruct);
 
     //GPIO_PinAFConfig(GPIOE, GPIO_PinSource0, GPIO_AF_UART8);
@@ -157,9 +171,12 @@ void init_USART8(void)
     USART_InitStruct.USART_Mode = USART_Mode_Tx /* | USART_Mode_Rx */;
     USART_Init(UART8, &USART_InitStruct);
     USART_Cmd(UART8, ENABLE);
+    
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
-    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+//     stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+//     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
 }
 
 

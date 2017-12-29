@@ -16,6 +16,7 @@
 
 void bluetooth_init(void)
 {
+    hw_bluetooth_init();
 }
 
 void bluetooth_send_serial()

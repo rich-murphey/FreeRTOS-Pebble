@@ -71,3 +71,9 @@ STM32_BUTTONS_MK_IRQ_HANDLER(2)
 STM32_BUTTONS_MK_IRQ_HANDLER(3)
 STM32_BUTTONS_MK_IRQ_HANDLER(4)
 
+
+
+int sscanf ( const char * s, const char * format, ...)
+{
+    return 0;
+}

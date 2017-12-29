@@ -26,14 +26,17 @@ void bt_device_init(void)
     hci_dump_open( NULL, HCI_DUMP_STDOUT );
     // init HCI
     hci_init(hci_transport_h4_instance(btstack_uart_block_freertos_instance()), (void*) &config);
-    // hand over to BTstack example code
+    hci_set_chipset(btstack_chipset_cc256x_instance()); // Do I need this ??
+    // hand over to BTstack example code (we hope)
     btstack_main(0, NULL);
     // go
     
-//    I think this needs to be threaded...
+    //    I think this needs to be threaded...
+    // It does.
+    // XXX MASSIVE TODO 
     btstack_run_loop_execute();
     
-    printf("TEST\n");
+    printf("WOOHOO?\n");
 }
 // BT stack needs these HAL implementations
 
@@ -79,12 +82,40 @@ void hal_uart_dma_set_sleep(uint8_t sleep){
 }
 
 // reset Bluetooth using nShutdown
-static void bluetooth_power_cycle(void){
-    printf("Bluetooth power cycle\n");
+void bluetooth_power_cycle(void)
+{
+//     printf("Bluetooth power cycle\n");
     GPIO_SetBits(GPIOB, GPIO_Pin_12);
-    delay_us(350 * 1000);
+    GPIO_SetBits(GPIOD, GPIO_Pin_2);
+    GPIO_SetBits(GPIOF, GPIO_Pin_2);
+    GPIO_SetBits(GPIOF, GPIO_Pin_3);
+    GPIO_SetBits(GPIOD, GPIO_Pin_2);
+    GPIO_SetBits(GPIOF, GPIO_Pin_2);
+    GPIO_SetBits(GPIOF, GPIO_Pin_3);
+    GPIO_SetBits(GPIOF, GPIO_Pin_6);
+    GPIO_SetBits(GPIOF, GPIO_Pin_8);
+    GPIO_SetBits(GPIOF, GPIO_Pin_9);
+     GPIO_SetBits(GPIOA, GPIO_Pin_4);
+    GPIO_SetBits(GPIOA, GPIO_Pin_8);
+    GPIO_SetBits(GPIOA, GPIO_Pin_13);
+    GPIO_SetBits(GPIOG, GPIO_Pin_5);
+    delay_us(150);
+    delay_us(150);
+    delay_us(150);
     GPIO_ResetBits(GPIOB, GPIO_Pin_12);
-    delay_us(800 * 1000);
+//     GPIO_ResetBits(GPIOD, GPIO_Pin_2);
+//     GPIO_ResetBits(GPIOF, GPIO_Pin_2);
+//     GPIO_ResetBits(GPIOF, GPIO_Pin_3);
+//      GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+//     GPIO_ResetBits(GPIOF, GPIO_Pin_6);
+//     GPIO_ResetBits(GPIOF, GPIO_Pin_8);
+//     GPIO_ResetBits(GPIOF, GPIO_Pin_9);
+//     GPIO_ResetBits(GPIOA, GPIO_Pin_8);
+//     GPIO_ResetBits(GPIOA, GPIO_Pin_13);
+//     GPIO_ResetBits(GPIOG, GPIO_Pin_5);
+    delay_us(80);
+    delay_us(80);
+    delay_us(80);
 }
 /*
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){

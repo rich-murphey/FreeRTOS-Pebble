@@ -64,6 +64,7 @@ SRCS_all += lib/png/upng.c
 SRCS_all += rcore/ambient.c
 SRCS_all += rcore/appmanager.c
 SRCS_all += rcore/backlight.c
+SRCS_all += rcore/bluetooth.c
 SRCS_all += rcore/buttons.c
 SRCS_all += rcore/display.c
 SRCS_all += rcore/debug.c
