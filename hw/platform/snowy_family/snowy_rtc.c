@@ -43,7 +43,7 @@ void rtc_init(void)
 
     // Enable the RTC Wakeup Interrupt
     NVIC_InitStruct.NVIC_IRQChannel = RTC_WKUP_IRQn;
-    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 7;
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 14;
     NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStruct);

@@ -73,17 +73,8 @@ void debug_write(const unsigned char *p, size_t len)
 void ss_debug_write(const unsigned char *p, size_t len)
 {
 // #ifdef DEBUG_UART_SMARTSTRAP
-//     int i;
-//     UBaseType_t saved_int_status;
-
-//     stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
-//     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
-    
-//     RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
-//     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
-
     log_clock_enable();
-    init_USART8();
+    
     for (int i = 0; i < len; i++) {
         while (!(UART8->SR & USART_SR_TC));
         USART_SendData(UART8, p[i]);
@@ -91,8 +82,6 @@ void ss_debug_write(const unsigned char *p, size_t len)
     }
     log_clock_disable();
     
-//     stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
-//     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
 // #endif
 }
 
@@ -193,6 +182,7 @@ void hw_watchdog_init()
  */
 void hw_watchdog_reset(void)
 {
+
     IWDG_ReloadCounter();
 }
 

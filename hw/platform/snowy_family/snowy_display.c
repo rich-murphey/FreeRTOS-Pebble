@@ -141,6 +141,8 @@ void hw_display_init(void)
  */
 void _snowy_display_init_intn(void)
 {
+    // XXX not used any more?
+    return;
     // Snowy uses two interrupts for the display
     // Done (G10) signals the drawing is done
     // INTn (G9) I suspect is for device readyness after flash
@@ -313,7 +315,7 @@ void snowy_display_reinit_dma(uint32_t *data, uint32_t length)
     dma_init_struct.DMA_DIR = DMA_DIR_MemoryToPeripheral;
     dma_init_struct.DMA_MemoryInc = DMA_MemoryInc_Enable;
     dma_init_struct.DMA_Memory0BaseAddr = (uint32_t)data;
-    dma_init_struct.DMA_BufferSize = length;
+    dma_init_struct.DMA_BufferSize = 1;
     dma_init_struct.DMA_PeripheralInc  = DMA_PeripheralInc_Disable;
     dma_init_struct.DMA_FIFOMode  = DMA_FIFOMode_Disable;
     dma_init_struct.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
@@ -378,13 +380,13 @@ void DMA2_Stream5_IRQHandler()
  * GPIO interrupt. We then chain call the ISR handler from here
  * and clear the interrupt
  */
-void EXTI15_10_IRQHandler(void)
-{
-    if (EXTI_GetITStatus(EXTI_Line10) != RESET)
-    {   
-        EXTI_ClearITPendingBit(EXTI_Line10);
-    }
-}
+// void EXTI15_10_IRQHandler(void)
+// {
+//     if (EXTI_GetITStatus(EXTI_Line10) != RESET)
+//     {   
+//         EXTI_ClearITPendingBit(EXTI_Line10);
+//     }
+// }
 
 /* When reset goes high, sample the CS input to see what state we should be in
  * if CS is low, expect new FPGA programming to arrive

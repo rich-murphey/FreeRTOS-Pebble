@@ -26,12 +26,101 @@
 // 
 
 #define BT_SHUTD        GPIO_Pin_12
+volatile int tx_done, rx_done = 0;
+
+// volatile uint8_t teststr[] = "\nHello 2\nasdadasd\n\n";
+const uint8_t hci_reset_bytes[] = { 0x01, 0x03, 0x0c, 0x00 };
+
+char gbuf[10];
+
+void _bt_reset_hci_dma(void)
+{
+    char buf[50];
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "HCI Reset DMA");
+    tx_done = 0;
+    
+    while(USART1->SR & USART_FLAG_RXNE)
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "Buf has %c", USART_ReceiveData(USART1));
+    
+    // send magic HCI reset
+    hw_bluetooth_recv_dma(gbuf, 7);
+    hw_bluetooth_send_dma(hci_reset_bytes, sizeof(hci_reset_bytes));
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "HCI Reset Sleep");
+    // XXX really we should await DMA completion
+ 
+    
+    int to = 0;
+    while(!tx_done)
+    {
+        if (to > 10000)
+            break;
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "TX...");
+        to++;
+        do_delay_ms(1);
+    }
+    
+    while (!rx_done)
+    {
+        if (to > 10000)
+            break;
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "RX...");
+        to++;
+    }
+    printf("Got ");
+    for (int i = 0; i < 7; i++)
+    {       
+        printf("0x%0x ", gbuf[i]);
+    }
+    printf("\n");
+    
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "TX Done");
+            IWDG_ReloadCounter();
+
+            return;
+    tx_done = 0;
+    // send magic HCI reset
+    hw_bluetooth_recv_dma(gbuf, 6);
+    hw_bluetooth_send_dma(hci_reset_bytes, sizeof(hci_reset_bytes));
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "2HCI Reset Sleep");
+    // XXX really we should await DMA completion
+//     do_delay_ms(120);
+    to = 0;
+    while(!tx_done)
+    {
+        if (to > 10)
+            break;
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "2TX...");
+        to++;
+    }
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "2TX Done");
+            IWDG_ReloadCounter();
+
+    do_delay_ms(1);
+    
+    
+    int i;
+    for (i = 0; i < 6; i++)
+    {       
+        _bt_read(buf, 1);
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "HCI 0x%0x", buf[0]);
+    }
+    return;
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "HCI Reset got %d bytes...", i);
+    char tbuf[150];
+    for(int j = 0; j < i; j++)
+    {
+        char tbuf2[50];
+        snprintf(tbuf2,"0x%02x ", buf[j]);
+        strcat(tbuf, tbuf2);
+    }
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "HCI bytes: ", tbuf);
+}
 
 void hw_bluetooth_init(void)
 {
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
-    
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
     // shutdown IS B12
     // USART1
     // slowclock from LSE over MCO1
@@ -65,11 +154,6 @@ void hw_bluetooth_init(void)
     GPIO_Init(GPIOA, &gpio_init_bt);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_MCO);
    
-    _init_USART1();
-    
-    // configure DMA
-    //_snowy_bluetooth_init_dma();
-    
     // initialise BTStack....For later!
     // bt_device_init();
     
@@ -82,8 +166,117 @@ void hw_bluetooth_init(void)
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
     stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
     stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_PWR);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-    // it should go like this
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+    
+    // configure DMA
+     _usart1_init(115200);
+    _bluetooth_dma_init();
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "TESTTTTTTTTTTT");
+    tx_done = 0;
+    rx_done = 0;
+    RCC_AHB1PeriphClockCmd (RCC_AHB1Periph_DMA2, ENABLE);
+//     char buf[100];
+     // send magic HCI reset
+//     const uint8_t hci_reset[] = { 0x01, 0x03, 0x0c, 0x00 };
+//     hw_bluetooth_recv_dma(buf, 7);
+//     hw_bluetooth_send_dma(hci_reset, sizeof(hci_reset));
+        // Well, lets go for broke. Dunno what this does
+   
+//      _bt_write("Hi\n", 3);
+//     hw_bluetooth_power_cycle();
+    GPIO_SetBits(GPIOA, GPIO_Pin_4);
+      
+
+// USART_ITConfig(USART1, USART_IT_TXE, ENABLE);
+//  USART_ITConfig(USART1, USART_IT_TC, ENABLE);
+DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "hmmmm\n");
+
+// tx_done = 0;
+         USART_Cmd(USART1, ENABLE);
+//  USART_ITConfig(USART1, USART_IT_TC, ENABLE);
+//     USART_ITConfig(USART1, USART_IT_ERR, ENABLE);
+//     USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+//      _bt_write("Hi\n", 3);
+//      _bt_write("O", 1);
+//      _bt_write("\n", 1);
+//      while(!tx_done);
+     
+// USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
+//  USART_ITConfig(USART1, USART_IT_TC, DISABLE);
+//     _bt_write(hci_reset, sizeof(hci_reset));
+//      hw_bluetooth_send_dma(teststr, strlen(teststr));
+             uint16_t timeout = 10000;
+             hw_bluetooth_power_cycle();
+
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "HCI Reset");
+    
+    // send magic HCI reset
+//     const uint8_t hci_reset[] = { 0x01, 0x03, 0x0c, 0x00 };
+   
+//     _bt_reset_hci_dma();
+    
+    /*
+  if (DMA_GetFlagStatus(DMA2_Stream7, DMA_FLAG_TEIF7) != RESET)
+  {
+      DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "TEIF\n");
+  }*/
+//   while (DMA_GetFlagStatus(DMA2_Stream7, DMA_FLAG_TCIF7) == RESET)
+//   {
+//   }
+//     while ((DMA_GetCmdStatus (DMA2_Stream7) != ENABLE) && (timeout-- > 0)) {
+//     }
+        
+//     while ((DMA_GetCmdStatus (DMA2_Stream7) != ENABLE)) {
+//     }
+    
+//     hw_bluetooth_send_dma(hci_reset, sizeof(hci_reset));
+//      _bt_write(hci_reset, sizeof(hci_reset));
+     
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "HCI Reset Done");
+//     while(!tx_done);
+//     DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "TX Done\n");
+//     while(!rx_done);
+//     
+//     DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "BUF: %s\n", buf); 
+
+    // initialise BTStack....For later!
+    bt_device_init();
+    
+    // For now lets try a good old fashioned HCI command
+    // lets reboot
+    
+
+    
+    // Read it back. We should have something (7 bytes)
+/*
+    for (int i = 0; i < 10; i++)
+    {
+        IWDG_ReloadCounter();
+
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "To Wait...\n");
+        _bt_read(buf, 1);
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "Buf: %d\n", buf[0]);
+    }*/
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "Done...\n");
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_USART1);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+    
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+}
+
+
+// reset Bluetooth using nShutdown
+void hw_bluetooth_power_cycle(void)
+{
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "BT: Reset...\n");
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_USART1);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_PWR);
+     // it should go like this
     // reset the chip by pulling nSHUTD high, sleep then low
     // Then we turn on the ext slow clock 32.768khz clock (MCO1)
     // then issue an HCI reset command.
@@ -99,131 +292,103 @@ void hw_bluetooth_init(void)
     // allow RTC access so we can play with LSE
     PWR_BackupAccessCmd(ENABLE); 
     
-    printf("BT set MCO1 32khz\n");
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "BT set MCO1 32khz");
     // Turn on the MCO1 clock and pump 32khz to bluetooth
     RCC_LSEConfig(RCC_LSE_ON);
 
     // knock knock
     while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET);
-    printf("LSE Ready\n");
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "LSE Ready");
     
     // Enable power to the MCO Osc out pin
     RCC_MCO1Config(RCC_MCO1Source_LSE, RCC_MCO1Div_1);
 
     // datasheet says no more than 2ms for clock stabilisation. Lets go for more
-    do_delay_ms(2);
+    do_delay_ms(5);
     IWDG_ReloadCounter();
-     
-    // initialise BTStack....For later!
-    //bt_device_init();
-    
-    // For now lets try a good old fashioned HCI command
-    // lets reboot
-    
-    int a,b = 0;
-    a = GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_12);
-    b = GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_11);
-    printf("Pre: RTS %d, CTS %d\n", a, b);
-    //bluetooth_power_cycle();
-    printf("BT: Reset...\n");
 
-    // B12 low
+    // B12 LOW then HIGH (enable)
     GPIO_ResetBits(GPIOB, BT_SHUTD);
-    printf("BT: nS_L\n");
-    do_delay_ms(20);
-    
+    do_delay_ms(20);    
     GPIO_SetBits(GPIOB, BT_SHUTD);
-    printf("BT: nS_H\n");
     // datasheet says at least 90ms to init
-    do_delay_ms(250);
-
-    printf("BT: Reset Done\n");
-        
-    a = GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_12);
-    b = GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_11);
-
-    printf("Post: %d %d\n", a, b);
-
-    printf("BT: HCI Reset\n");
+    do_delay_ms(90);
     
-    // send magic HCI reset
-    const uint8_t hci_reset[] = { 0x01, 0x03, 0x0c, 0x00 };
-    _bt_write(hci_reset, sizeof(hci_reset));
-    
-    /// ANNND becuase we don't get a response back uver usart, RTS isn't answered and we lock
-    // disabling flow control just lets us shout at the wind
-    printf("Wait for toggle\n");
-    
-    int olda, oldb;
-    olda = a;
-    oldb = b;
+    // but lets sit and wait for the device to come up
     for(int i = 0; i < 10000; i++)
     {
-        a = GPIO_ReadInputDataBit(GPIOA, BT_SHUTD);
-        b = GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_11);
-        
-        if (a != olda)
+        if(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_11) == 0)
         {
-            printf("A!\n");
-            break;
+            DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "BT: Reset Success! Took %d ms", 90 + i);
+            stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_USART1);
+            stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+            stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+            stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_PWR);
+            return;
         }
-        if (b != oldb)
-        {
-            printf("B!\n");
-            break;
-        }
-        IWDG_ReloadCounter();
-        
-        if (i % 1000 == 0)
-            printf("... still\n");
-
         do_delay_ms(1);
     }
-    printf("::%d %d\n", a, b);
-    
-    // Read it back. We should have something (7 bytes)
-    char buf[100];
-    for (int i = 0; i < 10; i++)
-    {
-        IWDG_ReloadCounter();
 
-        printf("To Wait...\n");
-        _bt_read(buf, 1);
-        printf("%d\n", buf[0]);
-        do_delay_us(10);
-        printf("Wait...\n");
-    }
-    printf("Done...\n");
+//     assert(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_11) == 0 && "BT Reset Failed");
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_USART1);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
-    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
-    
-    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_PWR);
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "BT: Failed? TERMINAL!\n");
 }
 
-void _init_USART1(void)
+void _bluetooth_dma_init(void)
+{
+    NVIC_InitTypeDef nvic_init_struct;
+    DMA_InitTypeDef dma_init_struct;
+    
+    // clocks
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+
+    // TX
+    DMA_DeInit(DMA2_Stream7);
+    DMA_StructInit(&dma_init_struct);
+    dma_init_struct.DMA_PeripheralBaseAddr = (uint32_t)&USART1->DR;
+    dma_init_struct.DMA_Memory0BaseAddr = (uint32_t)0;
+    dma_init_struct.DMA_DIR = DMA_DIR_MemoryToPeripheral;
+    dma_init_struct.DMA_Channel = DMA_Channel_4;
+    dma_init_struct.DMA_BufferSize = 1;
+    dma_init_struct.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+    dma_init_struct.DMA_MemoryInc = DMA_MemoryInc_Enable;
+    dma_init_struct.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+    dma_init_struct.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+    dma_init_struct.DMA_Mode = DMA_Mode_Normal;
+    dma_init_struct.DMA_Priority = DMA_Priority_VeryHigh;
+    dma_init_struct.DMA_FIFOMode = DMA_FIFOMode_Disable;
+    DMA_Init(DMA2_Stream7, &dma_init_struct);
+    
+    // tell the NVIC to party
+    nvic_init_struct.NVIC_IRQChannel = DMA2_Stream2_IRQn;
+    nvic_init_struct.NVIC_IRQChannelPreemptionPriority = 8;
+    nvic_init_struct.NVIC_IRQChannelSubPriority = 0;
+    nvic_init_struct.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&nvic_init_struct);
+    
+    nvic_init_struct.NVIC_IRQChannel = DMA2_Stream7_IRQn;
+    nvic_init_struct.NVIC_IRQChannelPreemptionPriority = 6;
+    nvic_init_struct.NVIC_IRQChannelSubPriority = 0;
+    nvic_init_struct.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&nvic_init_struct);    
+
+    
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+}
+
+void _usart1_init(uint32_t baud)
 {
     GPIO_InitTypeDef GPIO_InitStruct;
     USART_InitTypeDef USART_InitStruct;
+    NVIC_InitTypeDef nvic_init_struct;
 
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_USART1);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
-
-//     // CTS (11) RX (10)
-//     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11;
-//     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
-//     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
-//     GPIO_InitStruct.GPIO_OType = GPIO_OType_OD;
-//     GPIO_Init(GPIOA, &GPIO_InitStruct);
-//     
-//     // Configure TX (9) and RTS (12)
-//     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_9 | BT_SHUTD;
-//     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-//     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
-//     GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-//     GPIO_Init(GPIOA, &GPIO_InitStruct);
+    
+    // XXX shorten
 
     // RX (10)
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10;
@@ -257,43 +422,235 @@ void _init_USART1(void)
     GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+    // Real BT uses flow control
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_USART1);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_USART1);
+    USART_DeInit(USART1);
+    USART_StructInit(&USART_InitStruct);
 
-    USART_InitStruct.USART_BaudRate = 115200;
+    USART_InitStruct.USART_BaudRate = baud;
     USART_InitStruct.USART_WordLength = USART_WordLength_8b;
     USART_InitStruct.USART_StopBits = USART_StopBits_1;
     USART_InitStruct.USART_Parity = USART_Parity_No;
     USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_RTS_CTS;
     USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
     USART_Init(USART1, &USART_InitStruct);
+    
     USART_Cmd(USART1, ENABLE);
-
-    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-    // Enable global interrupt
-    NVIC_EnableIRQ(USART1_IRQn);
-
-//     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_USART1);
-//     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+    
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_USART1);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
 }
 
-void USART1_IRQHandler(void)
+// CTS
+// display has this too (gulp)!
+void EXTI15_10_IRQHandler(void){
+    if (EXTI_GetITStatus(EXTI_Line11) != RESET)
+    {
+        EXTI_ClearITPendingBit(EXTI_Line11);
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "EXTI");
+        bt_stack_cts_irq();
+    }
+    else if (EXTI_GetITStatus(EXTI_Line10) != RESET)
+    {
+        EXTI_ClearITPendingBit(EXTI_Line10);
+        // display
+    }
+}
+
+// uart1 rx
+void DMA2_Stream2_IRQHandler(void)	
 {
-    if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
+    if (DMA_GetITStatus(DMA2_Stream7, DMA_IT_TCIF2) != RESET)
     {
-//         Serial1._rxRingBuffer.write(USART_ReceiveData(USART1));
-        printf("RECV! %d\n", USART_ReceiveData(USART1));
+        DMA_ClearITPendingBit(DMA2_Stream2, DMA_IT_TCIF2);
+        USART_DMACmd(USART1, USART_DMAReq_Rx, DISABLE);
+        
+        stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_USART1);
+        stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+        stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+        stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+        stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+        bt_stack_rx_done();
+        rx_done = 1;
     }
-    if (USART_GetITStatus(USART1, USART_IT_TXE) != RESET)
+    else
     {
-        // Transmitter is empty, maybe send another char?
-//         if (Serial1._txRingBuffer.isEmpty())
-//             USART_ITConfig(USART1, USART_IT_TXE, DISABLE); // No more to send, disable the TX interrupt
-//         else
-//             USART_SendData(USART1, Serial1._txRingBuffer.read());
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "DMA2 RX ERROR?");
     }
+        
+}
+
+// uart1 tx 
+void DMA2_Stream7_IRQHandler(void)
+{
+    if (DMA_GetITStatus(DMA2_Stream7, DMA_IT_TCIF7) != RESET)
+    {
+        DMA_ClearITPendingBit(DMA2_Stream7, DMA_IT_TCIF7);
+        USART_DMACmd(USART1, USART_DMAReq_Tx, DISABLE);
+
+        stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_USART1);
+        stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+        stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+        stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+        stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+
+        bt_stack_tx_done();
+        tx_done = 1;
+    }
+
+    if (DMA_GetITStatus(DMA2_Stream7, DMA_IT_TEIF7) != RESET)
+    {
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "DMA2 TX ERROR TEIF");
+    }
+    if (DMA_GetITStatus(DMA2_Stream7, DMA_IT_DMEIF7) != RESET)
+    {
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "DMA2 TX ERROR? %d", 2);
+    }
+    if (DMA_GetITStatus(DMA2_Stream7, DMA_IT_FEIF7) != RESET)
+    {
+        DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "DMA2 TX ERROR? %d", 3);
+    }
+}
+
+void hw_bluetooth_set_baud(uint32_t baud)
+{
+    _usart1_init(baud);
+}
+
+void hw_bluetooth_enable_cts_irq()
+{
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+    
+    NVIC_InitTypeDef nvic_init_struct;
+    EXTI_InitTypeDef exti_init_struct;
+
+    SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource11);
+    
+    exti_init_struct.EXTI_Line = EXTI_Line11;
+    exti_init_struct.EXTI_LineCmd = ENABLE;
+    exti_init_struct.EXTI_Mode = EXTI_Mode_Interrupt;
+    exti_init_struct.EXTI_Trigger = EXTI_Trigger_Rising;
+    EXTI_Init(&exti_init_struct);
+
+    nvic_init_struct.NVIC_IRQChannel = EXTI15_10_IRQn;
+    nvic_init_struct.NVIC_IRQChannelPreemptionPriority = 7;  // must be > 5
+    nvic_init_struct.NVIC_IRQChannelSubPriority = 0x00;
+    nvic_init_struct.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&nvic_init_struct);
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "BT: enabled CTS irq");
+    
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+}
+
+void hw_bluetooth_disable_cts_irq()
+{
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+    
+    EXTI_InitTypeDef exti_init_struct;
+    NVIC_InitTypeDef nvic_init_struct;
+    
+    exti_init_struct.EXTI_Line = EXTI_Line11;
+    exti_init_struct.EXTI_LineCmd = DISABLE;
+    exti_init_struct.EXTI_Mode = EXTI_Mode_Interrupt;
+    exti_init_struct.EXTI_Trigger = EXTI_Trigger_Rising;
+    EXTI_Init(&exti_init_struct);
+
+    // CTS used PinSource11 which is connected to EXTI15_10
+    nvic_init_struct.NVIC_IRQChannel = EXTI15_10_IRQn;
+    nvic_init_struct.NVIC_IRQChannelPreemptionPriority = 7;  // must be > 5
+    nvic_init_struct.NVIC_IRQChannelSubPriority = 0x00;
+    nvic_init_struct.NVIC_IRQChannelCmd = DISABLE;
+    NVIC_Init(&nvic_init_struct);
+    DRV_LOG("BT", APP_LOG_LEVEL_DEBUG, "BT: disabled CTS irq");
+    
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+}
+
+void hw_bluetooth_send_dma(uint32_t *data, uint32_t len)
+{
+    // XXX released in IRQ
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_USART1);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+
+    
+    DMA_InitTypeDef dma_init_struct;
+    NVIC_InitTypeDef nvic_init_struct;
+    
+    // Configure DMA controller to manage TX DMA requests
+    DMA_Cmd(DMA2_Stream7, DISABLE);
+    while (DMA2_Stream7->CR & DMA_SxCR_EN);
+
+    USART_DMACmd(USART1, USART_DMAReq_Tx, DISABLE);
+    DMA_DeInit(DMA2_Stream7);
+    DMA_ClearFlag(DMA2_Stream7, DMA_FLAG_FEIF7|DMA_FLAG_DMEIF7|DMA_FLAG_TEIF7|DMA_FLAG_HTIF7|DMA_FLAG_TCIF7);
+
+    DMA_StructInit(&dma_init_struct);
+    // set the pointer to the USART DR register
+    dma_init_struct.DMA_Channel = DMA_Channel_4;
+    dma_init_struct.DMA_PeripheralBaseAddr = (uint32_t)&(USART1->DR);
+    dma_init_struct.DMA_Memory0BaseAddr = (uint32_t)data;
+    dma_init_struct.DMA_BufferSize = len;
+    dma_init_struct.DMA_DIR = DMA_DIR_MemoryToPeripheral;
+    dma_init_struct.DMA_MemoryInc = DMA_MemoryInc_Enable;
+    dma_init_struct.DMA_Mode = DMA_Mode_Normal;
+    dma_init_struct.DMA_PeripheralInc  = DMA_PeripheralInc_Disable;
+    dma_init_struct.DMA_FIFOMode  = DMA_FIFOMode_Disable;
+    dma_init_struct.DMA_FIFOThreshold = DMA_FIFOThreshold_Full;
+    dma_init_struct.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
+    dma_init_struct.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+    dma_init_struct.DMA_Priority = DMA_Priority_Low;
+    DMA_Init(DMA2_Stream7, &dma_init_struct);
+    
+    NVIC_EnableIRQ(DMA2_Stream7_IRQn);
+    USART_Cmd(USART1, ENABLE);
+    DMA_Cmd(DMA2_Stream7, ENABLE);
+    USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
+    DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, ENABLE);
+}
+
+void hw_bluetooth_recv_dma(uint32_t *data, size_t len)
+{
+    DMA_InitTypeDef dma_init_struct;
+
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_USART1);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+    
+    // Configure DMA controller to manage TX DMA requests
+    DMA_Cmd(DMA2_Stream2, DISABLE);
+    while (DMA2_Stream2->CR & DMA_SxCR_EN);
+
+    DMA_ClearFlag(DMA2_Stream2, DMA_FLAG_FEIF2|DMA_FLAG_DMEIF2|DMA_FLAG_TEIF2|DMA_FLAG_HTIF2|DMA_FLAG_TCIF2);
+    DMA_StructInit(&dma_init_struct);
+    // set the pointer to the USART DR register
+    dma_init_struct.DMA_PeripheralBaseAddr = (uint32_t) &USART1->DR;
+    dma_init_struct.DMA_Channel = DMA_Channel_4;
+    dma_init_struct.DMA_DIR = DMA_DIR_PeripheralToMemory;
+    dma_init_struct.DMA_MemoryInc = DMA_MemoryInc_Enable;
+    dma_init_struct.DMA_Memory0BaseAddr = (uint32_t)data;
+    dma_init_struct.DMA_BufferSize = len;
+    dma_init_struct.DMA_PeripheralInc  = DMA_PeripheralInc_Disable;
+    dma_init_struct.DMA_FIFOMode  = DMA_FIFOMode_Disable;
+    dma_init_struct.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
+    dma_init_struct.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+    dma_init_struct.DMA_Priority = DMA_Priority_High;
+    DMA_Init(DMA2_Stream2, &dma_init_struct);
+    
+    DMA_Cmd(DMA2_Stream2, ENABLE);
+    USART_DMACmd(USART1, USART_DMAReq_Rx, ENABLE);
+    DMA_ITConfig(DMA2_Stream2, DMA_IT_TC, ENABLE);
 }
 
 ssize_t _bt_write(const void *buf, size_t len)
@@ -317,73 +674,17 @@ ssize_t _bt_read(void *buf, size_t len)
         
       while (!(USART1->SR & USART_FLAG_RXNE));
       ((uint8_t *) buf)[i] = USART_ReceiveData(USART1);
-//       ((uint8_t *) buf)[i] =  USART1->DR & 0xff;
+//       ((uint8_t *) buf)[i] = USART1->DR & 0xff;
     }
     return i;
 }
 
-#define DELAY_TIM_FREQUENCY_US 1000000
-#define DELAY_TIM_FREQUENCY_MS 1000
-
-// Init and start timer for Milliseconds delays
-void _init_timer(uint32_t prescaler);
-
-void _init_timer(uint32_t prescaler)
-{
-    // Start the timer 2 clock
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-
-    TIM_TimeBaseInitTypeDef timebase_init;
-    TIM_TimeBaseStructInit(&timebase_init);
-    timebase_init.TIM_Prescaler = (SystemCoreClock / prescaler) - 1;
-    timebase_init.TIM_Period = UINT16_MAX;
-    timebase_init.TIM_ClockDivision = 0;
-    timebase_init.TIM_CounterMode = TIM_CounterMode_Up;
-    TIM_TimeBaseInit(TIM2, &timebase_init);
-    
-    TIM_Cmd(TIM2, ENABLE);
-}
-
-// Stop timer
-void _stop_timer()
-{
-    TIM_Cmd(TIM2, DISABLE);
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, DISABLE);
-}
 
 // Do delay for nTime milliseconds
 void do_delay_ms(uint32_t ms) {
-    // For QEmu which apparently doesn't like my TIM2 timer?!?
-    // Init and start timer
-    /*for (int i = 0; i < (SystemCoreClock/ 300000) * mSecs; i++)
-    {
-        asm("nop");
-        asm("");
-    }
-    return;*/
-    _init_timer(DELAY_TIM_FREQUENCY_MS);
-    
-    for (uint32_t i = 0; i < ms; i++)
-    {
-        volatile uint32_t start = TIM2->CNT;
-        while((TIM2->CNT - start) <= 1);
-        
-        // reset WDG so we don't reboot
-        IWDG_ReloadCounter();
-    }
-
-    _stop_timer();
+    vTaskDelay(pdMS_TO_TICKS(ms));
+    return;
+   
 }
 
 
-// Do delay for nTime microseconds
-void do_delay_us(uint32_t us)
-{
-    _init_timer(DELAY_TIM_FREQUENCY_US);
-
-    // Dummy loop with 16 bit count wrap around
-    volatile uint32_t start = TIM2->CNT;
-    while((TIM2->CNT - start) <= us);
-
-    _stop_timer();
-}

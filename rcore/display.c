@@ -117,7 +117,7 @@ static void _display_thread(void *pvParameters)
 
     // XXX Assume once screen is up, we are up.
     rebbleos_set_system_status(SYSTEM_STATUS_STARTED);
-    
+        
     while(1)
     {
         // commands to be executed are send to this queue and processed
